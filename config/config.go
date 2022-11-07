@@ -1198,9 +1198,11 @@ func migrateConfigDatabaseConnection(v *viper.Viper) {
 
 	for _, migration := range migrations {
 		driverField := migration.new + ".connection.driver"
-		if !v.IsSet(driverField) && v.IsSet("postgres.connection.dbname") {
+		if !v.IsSet(driverField) && v.IsSet(migration.old+".connection.dbname") {
 			glog.Warning(fmt.Sprintf("%s is not set, using default (postgres) ", driverField))
 			v.Set(driverField, "postgres")
+		} else {
+			v.SetDefault(driverField, "")
 		}
 
 		for _, field := range migration.fields {
@@ -1213,6 +1215,8 @@ func migrateConfigDatabaseConnection(v *viper.Viper) {
 					glog.Warning(fmt.Sprintf("%s is deprecated and should be changed to %s", oldField, newField))
 					v.Set(newField, v.Get(oldField))
 				}
+			} else {
+				v.SetDefault(newField, nil)
 			}
 		}
 	}

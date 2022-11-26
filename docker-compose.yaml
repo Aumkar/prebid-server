@@ -1,0 +1,44 @@
+version: "3"
+services:
+  backend:
+    image: prebid-server
+    environment:
+      - GDPR_DEFAULT_VALUE=0
+      - PBS_CACHE_SCHEME=https
+      - PBS_CACHE_HOST=prebid.adnxs.com/pbc/v1
+      - PBS_EXTERNAL_CACHE_SCHEME=https
+      - PBS_EXTERNAL_CACHE_HOST=prebid.adnxs.com
+      - PBS_EXTERNAL_CACHE_PATH=/pbc/v1/cache
+      - PBS_ACCOUNT_REQUIRED=0
+      - PBS_STORED_REQUESTS_DATABASE_CONNECTION_DRIVER=mysql
+      - PBS_STORED_REQUESTS_DATABASE_CONNECTION_DBNAME=anvil_prod
+      - PBS_STORED_REQUESTS_DATABASE_CONNECTION_HOST=db
+      - PBS_STORED_REQUESTS_DATABASE_CONNECTION_PORT=3306
+      - PBS_STORED_REQUESTS_DATABASE_CONNECTION_USER=prebid-server
+      - PBS_STORED_REQUESTS_POSTGRES_CONNECTION_PASSWORD=test123
+      - PBS_STORED_REQUESTS_DATABASE_FETCHER_QUERY=SELECT id, payload as data, requestType as type FROM stored_requests;
+      - PBS_STORED_REQUESTS_DATABASE_FETCHER_AMP_QUERY=SELECT id, payload, 'request' FROM stored_request where requestType = 'amp';
+    ports:
+      - 8000:8000
+    networks:
+      - public
+      - private
+    depends_on:
+      - db
+  db:
+    image: mysql:8.0.27
+    restart: always
+    ports:
+      - 3306:3306
+    volumes:
+      - ~/db-data:/var/lib/mysql
+    networks:
+      - private
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=anvil_prod
+      - MYSQL_USER=prebid-server
+      - MYSQL_PASSWORD=test123
+networks:
+  public:
+  private:

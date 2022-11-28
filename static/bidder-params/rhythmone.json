@@ -20,5 +20,5 @@
       "minLength": 1
     }
   },
-  "required": ["placementId", "path", "zone"]
+  "required": ["placementId"]
 }

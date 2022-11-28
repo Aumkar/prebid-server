@@ -14,7 +14,7 @@
             },
             "ext": {
                 "bidder": {
-                    "placementId": "fake-placement-id"
+                    "placementId": 99999
                 }
             }
         }]
@@ -38,7 +38,7 @@
                     },
                     "ext": {
                         "bidder": {
-                            "placementId": "fake-placement-id"
+                            "placementId": 99999
                         }
                     }
                 }]

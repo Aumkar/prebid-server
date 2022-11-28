@@ -18,8 +18,7 @@
     },
     "platform": {
       "type": "string",
-      "description": "The platform id for the customer.",
-      "format": "uuid"
+      "description": "The platform id for the customer."
     },
     "customFloor": {
       "type": "number",
@@ -31,19 +30,13 @@
       "description": "User-defined targeting key-value pairs."
     }
   },
-  "required": [
-    "unit"
-  ],
+  "required": ["unit"],
   "anyOf": [
     {
-      "required": [
-        "delDomain"
-      ]
+      "required": ["delDomain"]
     },
     {
-      "required": [
-        "platform"
-      ]
+      "required": ["platform"]
     }
   ]
 }

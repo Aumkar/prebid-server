@@ -5,7 +5,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -21,14 +20,13 @@ func (provider *PostgresDbProvider) Config() config.DatabaseConnection {
 	return provider.cfg
 }
 
-func (provider *PostgresDbProvider) Open(cfg config.DatabaseConnection) error {
-	db, err := sql.Open(cfg.Driver, provider.ConnString(cfg))
+func (provider *PostgresDbProvider) Open() error {
+	db, err := sql.Open(provider.cfg.Driver, provider.ConnString())
 
 	if err != nil {
 		return err
 	}
 
-	provider.cfg = cfg
 	provider.db = db
 	return nil
 }
@@ -47,36 +45,36 @@ func (provider *PostgresDbProvider) Ping() error {
 	return provider.db.Ping()
 }
 
-func (provider *PostgresDbProvider) ConnString(cfg config.DatabaseConnection) string {
+func (provider *PostgresDbProvider) ConnString() string {
 	buffer := bytes.NewBuffer(nil)
 
-	if cfg.Host != "" {
+	if provider.cfg.Host != "" {
 		buffer.WriteString("host=")
-		buffer.WriteString(cfg.Host)
+		buffer.WriteString(provider.cfg.Host)
 		buffer.WriteString(" ")
 	}
 
-	if cfg.Port > 0 {
+	if provider.cfg.Port > 0 {
 		buffer.WriteString("port=")
-		buffer.WriteString(strconv.Itoa(cfg.Port))
+		buffer.WriteString(strconv.Itoa(provider.cfg.Port))
 		buffer.WriteString(" ")
 	}
 
-	if cfg.Username != "" {
+	if provider.cfg.Username != "" {
 		buffer.WriteString("user=")
-		buffer.WriteString(cfg.Username)
+		buffer.WriteString(provider.cfg.Username)
 		buffer.WriteString(" ")
 	}
 
-	if cfg.Password != "" {
+	if provider.cfg.Password != "" {
 		buffer.WriteString("password=")
-		buffer.WriteString(cfg.Password)
+		buffer.WriteString(provider.cfg.Password)
 		buffer.WriteString(" ")
 	}
 
-	if cfg.Database != "" {
+	if provider.cfg.Database != "" {
 		buffer.WriteString("dbname=")
-		buffer.WriteString(cfg.Database)
+		buffer.WriteString(provider.cfg.Database)
 		buffer.WriteString(" ")
 	}
 
@@ -88,22 +86,14 @@ func (provider *PostgresDbProvider) PrepareQuery(template string, params ...Quer
 	query = template
 	args = []interface{}{}
 
-	type occurrence struct {
-		startIndex int
-		paramIndex int
-		paramKind  reflect.Kind
-	}
-
 	for _, param := range params {
-		if reflect.TypeOf(param.Value).Kind() == reflect.Slice {
-
-			idList := param.Value.([]interface{})
-
+		switch v := param.Value.(type) {
+		case []interface{}:
+			idList := v
 			idListStr := provider.createIdList(len(args), len(idList))
 			args = append(args, idList...)
 			query = strings.Replace(query, "$"+param.Name, idListStr, -1)
-
-		} else {
+		default:
 			args = append(args, param.Value)
 			query = strings.Replace(query, "$"+param.Name, fmt.Sprintf("$%d", len(args)), -1)
 		}
@@ -122,7 +112,7 @@ func (provider *PostgresDbProvider) createIdList(numSoFar int, numArgs int) stri
 	//
 	// The query plan also suggests that it's basically free:
 	//
-	// explain SELECT id, requestData FROM stored_requests WHERE id in %ID_LIST%;
+	// explain SELECT id, requestData FROM stored_requests WHERE id in $ID_LIST;
 	//
 	// QUERY PLAN
 	// -------------------------------------------

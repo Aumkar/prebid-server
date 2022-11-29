@@ -4,34 +4,86 @@ import (
 	"testing"
 
 	"github.com/prebid/prebid-server/config"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConnStringMySql(t *testing.T) {
-	driver := "mysql"
-	db := "TestDB"
-	host := "somehost.com"
-	port := 20
-	username := "someuser"
-	password := "somepassword"
-
-	cfg := config.DatabaseConnection{
-		Driver:   driver,
-		Database: db,
-		Host:     host,
-		Port:     port,
-		Username: username,
-		Password: password,
-	}
-	provider := MySqlDbProvider{
-		cfg: cfg,
+	type Params struct {
+		db       string
+		host     string
+		port     int
+		username string
+		password string
 	}
 
-	dataSourceName := provider.ConnString(cfg)
-	assertStringsEqual(t, dataSourceName, "someuser:somepassword@tcp(somehost.com:20)/TestDB")
-}
+	tests := []struct {
+		name       string
+		params     Params
+		connString string
+	}{
+		{
+			params: Params{
+				db: "",
+			},
+			connString: "tcp()/",
+		},
+		{
+			params: Params{
+				db: "TestDB",
+			},
+			connString: "tcp()/TestDB",
+		},
+		{
+			params: Params{
+				host: "example.com",
+			},
+			connString: "tcp(example.com)/",
+		},
+		{
+			params: Params{
+				port: 20,
+			},
+			connString: "tcp(:20)/",
+		},
+		{
+			params: Params{
+				username: "someuser",
+			},
+			connString: "someuser@tcp()/",
+		},
+		{
+			params: Params{
+				username: "someuser",
+				password: "somepassword",
+			},
+			connString: "someuser:somepassword@tcp()/",
+		},
+		{
+			params: Params{
+				db:       "TestDB",
+				host:     "example.com",
+				port:     20,
+				username: "someuser",
+				password: "somepassword",
+			},
+			connString: "someuser:somepassword@tcp(example.com:20)/TestDB",
+		},
+	}
 
-func assertStringsEqual(t *testing.T, actual string, expected string) {
-	if actual != expected {
-		t.Errorf("Strings did not match.\n\"%s\" -- expected\n\"%s\" -- actual", expected, actual)
+	for _, test := range tests {
+		cfg := config.DatabaseConnection{
+			Database: test.params.db,
+			Host:     test.params.host,
+			Port:     test.params.port,
+			Username: test.params.username,
+			Password: test.params.password,
+		}
+
+		provider := MySqlDbProvider{
+			cfg: cfg,
+		}
+
+		connString := provider.ConnString()
+		assert.Equal(t, test.connString, connString, "Strings did not match")
 	}
 }

@@ -1,9 +1,7 @@
 package config
 
 import (
-	"bytes"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -200,75 +198,6 @@ type DatabaseConnection struct {
 	Password string `mapstructure:"password"`
 }
 
-func (cfg *DatabaseConnection) connStringMySql() string {
-	buffer := bytes.NewBuffer(nil)
-
-	if cfg.Username != "" {
-		buffer.WriteString(cfg.Username)
-		if cfg.Password != "" {
-			buffer.WriteString(":")
-			buffer.WriteString(cfg.Password)
-		}
-		buffer.WriteString("@")
-	}
-
-	buffer.WriteString("tcp(")
-	if cfg.Host != "" {
-		buffer.WriteString(cfg.Host)
-	}
-
-	if cfg.Port > 0 {
-		buffer.WriteString(":")
-		buffer.WriteString(strconv.Itoa(cfg.Port))
-	}
-	buffer.WriteString(")")
-
-	buffer.WriteString("/")
-
-	if cfg.Database != "" {
-		buffer.WriteString(cfg.Database)
-	}
-
-	return buffer.String()
-}
-
-func (cfg *DatabaseConnection) connStringPostgres() string {
-	buffer := bytes.NewBuffer(nil)
-
-	if cfg.Host != "" {
-		buffer.WriteString("host=")
-		buffer.WriteString(cfg.Host)
-		buffer.WriteString(" ")
-	}
-
-	if cfg.Port > 0 {
-		buffer.WriteString("port=")
-		buffer.WriteString(strconv.Itoa(cfg.Port))
-		buffer.WriteString(" ")
-	}
-
-	if cfg.Username != "" {
-		buffer.WriteString("user=")
-		buffer.WriteString(cfg.Username)
-		buffer.WriteString(" ")
-	}
-
-	if cfg.Password != "" {
-		buffer.WriteString("password=")
-		buffer.WriteString(cfg.Password)
-		buffer.WriteString(" ")
-	}
-
-	if cfg.Database != "" {
-		buffer.WriteString("dbname=")
-		buffer.WriteString(cfg.Database)
-		buffer.WriteString(" ")
-	}
-
-	buffer.WriteString("sslmode=disable")
-	return buffer.String()
-}
-
 type DatabaseFetcherQueries struct {
 	// QueryTemplate is the Database Query which can be used to fetch configs from the database.
 	// It is a Template, rather than a full Query, because a single HTTP request may reference multiple Stored Requests.
@@ -276,11 +205,11 @@ type DatabaseFetcherQueries struct {
 	// In the simplest case, this could be something like:
 	//   SELECT id, requestData, 'request' as type
 	//     FROM stored_requests
-	//     WHERE id in %REQUEST_ID_LIST%
+	//     WHERE id in $REQUEST_ID_LIST
 	//     UNION ALL
 	//   SELECT id, impData, 'imp' as type
 	//     FROM stored_imps
-	//     WHERE id in %IMP_ID_LIST%
+	//     WHERE id in $IMP_ID_LIST
 	//
 	// The MakeQuery function will transform this query into:
 	//   SELECT id, requestData, 'request' as type
@@ -323,7 +252,7 @@ func (cfg *DatabaseCacheInitializer) validate(dataType DataType, errs []error) [
 		errs = append(errs, fmt.Errorf("%s: database.initialize_caches.timeout_ms must be positive", section))
 	}
 	if strings.Contains(cfg.Query, "$") {
-		errs = append(errs, fmt.Errorf("%s: database.initialize_caches.query should not contain any wildcards (e.g. $1)", section))
+		errs = append(errs, fmt.Errorf("%s: database.initialize_caches.query should not contain any wildcards denoted by $ (e.g. $LAST_UPDATED)", section))
 	}
 	return errs
 }
@@ -339,11 +268,11 @@ type DatabaseUpdatePolling struct {
 	//
 	// SELECT id, requestData, 'request' AS type
 	//   FROM stored_requests
-	//   WHERE last_updated > $1
+	//   WHERE last_updated > $LAST_UPDATED
 	// UNION ALL
 	// SELECT id, impData, 'imp' AS type
 	//   FROM stored_imps
-	//   WHERE last_updated > $1
+	//   WHERE last_updated > $LAST_UPDATED
 	//
 	// The code will be run periodically to fetch updates from the database.
 	Query string `mapstructure:"query"`

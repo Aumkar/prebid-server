@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -22,14 +21,13 @@ func (provider *MySqlDbProvider) Config() config.DatabaseConnection {
 	return provider.cfg
 }
 
-func (provider *MySqlDbProvider) Open(cfg config.DatabaseConnection) error {
-	db, err := sql.Open(cfg.Driver, provider.ConnString(cfg))
+func (provider *MySqlDbProvider) Open() error {
+	db, err := sql.Open(provider.cfg.Driver, provider.ConnString())
 
 	if err != nil {
 		return err
 	}
 
-	provider.cfg = cfg
 	provider.db = db
 	return nil
 }
@@ -48,33 +46,33 @@ func (provider *MySqlDbProvider) Ping() error {
 	return provider.db.Ping()
 }
 
-func (provider *MySqlDbProvider) ConnString(cfg config.DatabaseConnection) string {
+func (provider *MySqlDbProvider) ConnString() string {
 	buffer := bytes.NewBuffer(nil)
 
-	if cfg.Username != "" {
-		buffer.WriteString(cfg.Username)
-		if cfg.Password != "" {
+	if provider.cfg.Username != "" {
+		buffer.WriteString(provider.cfg.Username)
+		if provider.cfg.Password != "" {
 			buffer.WriteString(":")
-			buffer.WriteString(cfg.Password)
+			buffer.WriteString(provider.cfg.Password)
 		}
 		buffer.WriteString("@")
 	}
 
 	buffer.WriteString("tcp(")
-	if cfg.Host != "" {
-		buffer.WriteString(cfg.Host)
+	if provider.cfg.Host != "" {
+		buffer.WriteString(provider.cfg.Host)
 	}
 
-	if cfg.Port > 0 {
+	if provider.cfg.Port > 0 {
 		buffer.WriteString(":")
-		buffer.WriteString(strconv.Itoa(cfg.Port))
+		buffer.WriteString(strconv.Itoa(provider.cfg.Port))
 	}
 	buffer.WriteString(")")
 
 	buffer.WriteString("/")
 
-	if cfg.Database != "" {
-		buffer.WriteString(cfg.Database)
+	if provider.cfg.Database != "" {
+		buffer.WriteString(provider.cfg.Database)
 	}
 
 	return buffer.String()
@@ -86,20 +84,18 @@ func (provider *MySqlDbProvider) PrepareQuery(template string, params ...QueryPa
 
 	type occurrence struct {
 		startIndex int
-		paramIndex int
-		paramKind  reflect.Kind
+		param      QueryParam
 	}
 	occurrences := []occurrence{}
 
-	for index, param := range params {
+	for _, param := range params {
 		re := regexp.MustCompile("\\$" + param.Name)
 		matches := re.FindAllIndex([]byte(query), -1)
 		for _, match := range matches {
 			occurrences = append(occurrences,
 				occurrence{
 					startIndex: match[0],
-					paramIndex: index,
-					paramKind:  reflect.TypeOf(param.Value).Kind(),
+					param:      param,
 				})
 		}
 	}
@@ -108,20 +104,22 @@ func (provider *MySqlDbProvider) PrepareQuery(template string, params ...QueryPa
 	})
 
 	for _, occurrence := range occurrences {
-		if occurrence.paramKind == reflect.Slice {
-			idList := params[occurrence.paramIndex].Value.([]interface{})
+		switch occurrence.param.Value.(type) {
+		case []interface{}:
+			idList := occurrence.param.Value.([]interface{})
 			args = append(args, idList...)
-		} else {
-			args = append(args, params[occurrence.paramIndex].Value)
+		default:
+			args = append(args, occurrence.param.Value)
 		}
 	}
 
 	for _, param := range params {
-		if reflect.TypeOf(param.Value).Kind() == reflect.Slice {
+		switch param.Value.(type) {
+		case []interface{}:
 			len := len(param.Value.([]interface{}))
 			idList := provider.createIdList(len)
 			query = strings.Replace(query, "$"+param.Name, idList, -1)
-		} else {
+		default:
 			query = strings.Replace(query, "$"+param.Name, "?", -1)
 		}
 	}

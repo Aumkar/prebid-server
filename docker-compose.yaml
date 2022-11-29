@@ -17,8 +17,8 @@ services:
       - PBS_STORED_REQUESTS_DATABASE_CONNECTION_PORT=3306
       - PBS_STORED_REQUESTS_DATABASE_CONNECTION_USER=prebid-server
       - PBS_STORED_REQUESTS_DATABASE_CONNECTION_PASSWORD=test123
-      - PBS_STORED_REQUESTS_DATABASE_FETCHER_QUERY=SELECT id, payload as data, requestType as type FROM stored_requests;
-      - PBS_STORED_REQUESTS_DATABASE_FETCHER_AMP_QUERY=SELECT id, payload, 'request' FROM stored_request where requestType = 'amp';
+      - PBS_STORED_REQUESTS_DATABASE_FETCHER_QUERY=SELECT id, payload as data, requestType as type FROM stored_requests where id in $$REQUEST_ID_LIST or id in $$IMP_ID_LIST;
+      - PBS_STORED_REQUESTS_DATABASE_FETCHER_AMP_QUERY=SELECT id, payload, 'request' FROM stored_request where requestType = 'amp' and id in $$REQUEST_ID_LIST;
     ports:
       - 8000:8000
     networks:

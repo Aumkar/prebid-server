@@ -4,7 +4,6 @@ import (
 	"flag"
 	"math/rand"
 	"net/http"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -32,9 +31,6 @@ func main() {
 		glog.Exitf("Unable to build configuration directory path: %v", err)
 	}
 
-	cmd := exec.Command("curl", "https://ipinfo.io/ip")
-	out, err := cmd.Output()
-	glog.Infof("IP Address %s", out)
 	bidderInfos, err := config.LoadBidderInfoFromDisk(bidderInfoPath)
 	if err != nil {
 		glog.Exitf("Unable to load bidder configurations: %v", err)

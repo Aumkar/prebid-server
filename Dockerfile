@@ -12,9 +12,8 @@ ENV GOROOT=/usr/local/go
 ENV PATH=$GOROOT/bin:$PATH
 ENV GOPROXY="https://proxy.golang.org"
 RUN apt-get update && \
-    apt-get install -y git curl && \
+    apt-get install -y git && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-RUN curl https://ipinfo.io/ip
 ENV CGO_ENABLED 0
 COPY ./ ./
 RUN go mod tidy
@@ -32,10 +31,9 @@ COPY static static/
 COPY stored_requests/data stored_requests/data
 RUN chmod -R a+r static/ stored_requests/data
 RUN apt-get update && \
-    apt-get install -y ca-certificates mtr curl && \
+    apt-get install -y ca-certificates mtr && \
     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 RUN adduser prebid_user
-RUN curl https://ipinfo.io/ip
 USER prebid_user
 EXPOSE 8000
 EXPOSE 6060

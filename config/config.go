@@ -1315,6 +1315,13 @@ func migrateConfigDatabaseConnection(v *viper.Viper) {
 					glog.Warning(fmt.Sprintf("using %s and ignoring deprecated %s", newField, oldField))
 				}
 			}
+		} else {
+			// Settings defaults for newer fields. For some reason ENV variables for DB not picked without this.
+			for _, field := range migration.fields {
+				newField := migration.new + "." + field
+				v.SetDefault(newField, nil)
+			}
+			v.SetDefault(driverField, nil)
 		}
 	}
 }

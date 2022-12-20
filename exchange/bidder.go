@@ -497,10 +497,12 @@ func makeExt(httpInfo *httpCallInfo) *openrtb_ext.ExtHttpCall {
 		ext.RequestBody = string(httpInfo.request.Body)
 		ext.RequestHeaders = filterHeader(httpInfo.request.Headers)
 
-		if httpInfo.err == nil && httpInfo.response != nil {
+		// if httpInfo.err == nil && httpInfo.response != nil {
+		if httpInfo.response != nil {
 			ext.ResponseBody = string(httpInfo.response.Body)
 			ext.Status = httpInfo.response.StatusCode
 		}
+		// }
 	}
 
 	return ext

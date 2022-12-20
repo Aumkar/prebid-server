@@ -1333,6 +1333,8 @@ func TestMakeExt(t *testing.T) {
 				Uri:            "requestUri",
 				RequestBody:    "requestBody",
 				RequestHeaders: map[string][]string{"Key1": {"value1", "value2"}},
+				ResponseBody:   "responseBody",
+				Status:         999,
 			},
 		},
 		{
